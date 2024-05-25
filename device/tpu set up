@@ -1,0 +1,34 @@
+if "TPU" in CFG.device:
+    tpu = 'local' if CFG.device=='TPU-VM' else None
+    print("connecting to TPU...")
+    try:
+       
+        resolver = tf.distribute.cluster_resolver.TPUClusterResolver(tpu='local')
+        tf.tpu.experimental.initialize_tpu_system(resolver)
+        strategy = tf.distribute.TPUStrategy(resolver)
+        
+    except Exception as e:
+        print(e)
+        CFG.device = "GPU"
+        
+if CFG.device == "GPU"  or CFG.device=="CPU":
+    ngpu = len(tf.config.experimental.list_physical_devices('GPU'))
+    if ngpu>1:
+        print("Using multi GPU")
+        strategy = tf.distribute.MirroredStrategy()
+    elif ngpu==1:
+        print("Using single GPU")
+        strategy = tf.distribute.get_strategy()
+    else:
+        print("Using CPU")
+        strategy = tf.distribute.get_strategy()
+        CFG.device = "CPU"
+
+if CFG.device == "GPU":
+    print("Num GPUs Available: ", ngpu)
+    
+
+AUTO     = tf.data.experimental.AUTOTUNE
+CFG.replicas = strategy.num_replicas_in_sync
+print(f'REPLICAS: {CFG.replicas}')
+CFG.device
